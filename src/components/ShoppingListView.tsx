@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ArrowLeft, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { Plus, ArrowLeft, MoreVertical, Trash2, Edit2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,6 +23,8 @@ import { ShoppingList } from '@/types/grocery';
 import { useGrocery } from '@/context/GroceryContext';
 import { SwipeableItem } from './SwipeableItem';
 import { AddItemForm } from './AddItemForm';
+import { ShareDialog } from './ShareDialog';
+import { generateShareToken } from '@/lib/api';
 
 interface ShoppingListViewProps {
   list: ShoppingList;
@@ -35,6 +37,7 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(list.name);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Sort items: unbought first, then bought
   const sortedItems = [...list.items].sort((a, b) => {
@@ -92,6 +95,10 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsEditing(true)}>
                 <Edit2 className="w-4 h-4 mr-2" />
                 Rename
@@ -232,6 +239,19 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Share dialog */}
+      <ShareDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        type="list"
+        id={list.id}
+        name={list.name}
+        onGenerateShareLink={async () => {
+          const token = await generateShareToken('list', list.id);
+          return token;
+        }}
+      />
     </div>
   );
 }

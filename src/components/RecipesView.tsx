@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, Trash2, Edit2, ChefHat } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit2, ChefHat, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,8 @@ import { useGrocery } from '@/context/GroceryContext';
 import { Recipe, RecipeItem, Unit, UNITS, ShoppingList } from '@/types/grocery';
 import { cn } from '@/lib/utils';
 import { generateId } from '@/lib/storage';
+import { ShareDialog } from './ShareDialog';
+import { generateShareToken } from '@/lib/api';
 
 interface RecipesViewProps {
   onBack: () => void;
@@ -26,6 +28,7 @@ export function RecipesView({ onBack }: RecipesViewProps) {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddToListDialog, setShowAddToListDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -49,6 +52,7 @@ export function RecipesView({ onBack }: RecipesViewProps) {
               setIsEditing(false);
             }}
             onAddToList={() => setShowAddToListDialog(true)}
+            onShare={() => setShowShareDialog(true)}
           />
         ) : (
           <RecipesList
@@ -80,6 +84,21 @@ export function RecipesView({ onBack }: RecipesViewProps) {
           onAdd={(listId, portions, items) => {
             addRecipeToList(selectedRecipe.id, listId, portions, items);
             setShowAddToListDialog(false);
+          }}
+        />
+      )}
+
+      {/* Share Dialog */}
+      {selectedRecipe && (
+        <ShareDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          type="recipe"
+          id={selectedRecipe.id}
+          name={selectedRecipe.title}
+          onGenerateShareLink={async () => {
+            const token = await generateShareToken('recipe', selectedRecipe.id);
+            return token;
           }}
         />
       )}
@@ -181,6 +200,7 @@ interface RecipeDetailProps {
   onDelete: () => void;
   onSave: (updates: Partial<Recipe>) => void;
   onAddToList: () => void;
+  onShare: () => void;
 }
 
 function RecipeDetail({
@@ -191,6 +211,7 @@ function RecipeDetail({
   onDelete,
   onSave,
   onAddToList,
+  onShare,
 }: RecipeDetailProps) {
   const { data } = useGrocery();
   const [title, setTitle] = useState(recipe.title);
@@ -245,9 +266,14 @@ function RecipeDetail({
             {isEditing ? 'Edit Recipe' : recipe.title}
           </h1>
           {!isEditing && (
-            <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}>
-              <Edit2 className="w-5 h-5" />
-            </Button>
+            <>
+              <Button variant="ghost" size="icon" onClick={onShare}>
+                <Share2 className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}>
+                <Edit2 className="w-5 h-5" />
+              </Button>
+            </>
           )}
         </div>
       </header>

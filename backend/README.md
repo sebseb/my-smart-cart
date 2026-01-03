@@ -1,5 +1,42 @@
 # Grocery List Backend
 
+This backend runs on your NUC and provides:
+- REST API for data sync
+- WebSocket server for real-time collaboration
+- SQLite database for persistence
+- Share link generation and management
+
+## Setup
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+## Environment Variables
+
+- `PORT` - Server port (default: 3001)
+- `VITE_API_URL` - Set in frontend to point to your NUC's Tailscale IP
+- `VITE_WS_URL` - WebSocket URL (same host, e.g., `ws://100.x.x.x:3001`)
+
+## API Endpoints
+
+- `GET /api/health` - Health check
+- `GET /api/data` - Get all data
+- `POST /api/sync` - Sync client data with server
+- `POST /api/share/generate` - Generate share token for list/recipe
+- `GET /api/share/:type/:token` - Get shared item
+- `PUT /api/share/:type/:token` - Update shared item
+
+## WebSocket Events
+
+Connect to `ws://your-nuc-ip:3001` for real-time updates:
+
+- `subscribe` - Subscribe to a room (e.g., `list:TOKEN` or `recipe:TOKEN`)
+- `unsubscribe` - Leave a room
+- `update` - Broadcast updates to room members
+
 This folder contains the backend code to run on your NUC via Tailscale.
 
 ## Prerequisites

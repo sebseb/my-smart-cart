@@ -3,6 +3,9 @@ import cors from 'cors';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,6 +19,13 @@ db.exec(`
     id INTEGER PRIMARY KEY CHECK (id = 1),
     data TEXT NOT NULL,
     updated_at TEXT NOT NULL
+  );
+  
+  CREATE TABLE IF NOT EXISTS share_tokens (
+    token TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
   );
 `);
 
@@ -50,6 +60,86 @@ if (!initRow) {
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// HTTP server for WebSocket
+const server = createServer(app);
+
+// WebSocket server
+const wss = new WebSocketServer({ server });
+
+// Room subscriptions: Map<room, Set<ws>>
+const rooms = new Map();
+
+wss.on('connection', (ws) => {
+  console.log('WebSocket client connected');
+  const subscribedRooms = new Set();
+
+  ws.on('message', (message) => {
+    try {
+      const { type, data } = JSON.parse(message);
+
+      switch (type) {
+        case 'subscribe':
+          const room = data.room;
+          if (!rooms.has(room)) {
+            rooms.set(room, new Set());
+          }
+          rooms.get(room).add(ws);
+          subscribedRooms.add(room);
+          console.log(`Client subscribed to room: ${room}`);
+          break;
+
+        case 'unsubscribe':
+          if (rooms.has(data.room)) {
+            rooms.get(data.room).delete(ws);
+            subscribedRooms.delete(data.room);
+          }
+          break;
+
+        case 'update':
+          // Broadcast update to all clients in the room except sender
+          const updateRoom = data.room;
+          if (rooms.has(updateRoom)) {
+            rooms.get(updateRoom).forEach((client) => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify({
+                  type: 'update',
+                  data: data.payload,
+                }));
+              }
+            });
+          }
+          break;
+      }
+    } catch (error) {
+      console.error('WebSocket message error:', error);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('WebSocket client disconnected');
+    // Remove from all subscribed rooms
+    subscribedRooms.forEach((room) => {
+      if (rooms.has(room)) {
+        rooms.get(room).delete(ws);
+        if (rooms.get(room).size === 0) {
+          rooms.delete(room);
+        }
+      }
+    });
+  });
+});
+
+// Broadcast function for server-side updates
+function broadcastToRoom(room, type, data, excludeWs = null) {
+  if (rooms.has(room)) {
+    rooms.get(room).forEach((client) => {
+      if (client !== excludeWs && client.readyState === 1) {
+        client.send(JSON.stringify({ type, data }));
+      }
+    });
+  }
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -117,6 +207,118 @@ app.post('/api/sync', (req, res) => {
   }
 });
 
+// Generate share token
+app.post('/api/share/generate', (req, res) => {
+  try {
+    const { type, id } = req.body;
+    
+    if (!type || !id) {
+      return res.status(400).json({ error: 'Missing type or id' });
+    }
+
+    // Check if token already exists for this item
+    const existing = db.prepare(
+      'SELECT token FROM share_tokens WHERE type = ? AND item_id = ?'
+    ).get(type, id);
+
+    if (existing) {
+      return res.json({ token: existing.token });
+    }
+
+    // Generate new token
+    const token = crypto.randomBytes(16).toString('hex');
+    
+    db.prepare(
+      'INSERT INTO share_tokens (token, type, item_id, created_at) VALUES (?, ?, ?, ?)'
+    ).run(token, type, id, new Date().toISOString());
+
+    res.json({ token });
+  } catch (error) {
+    console.error('Error generating share token:', error);
+    res.status(500).json({ error: 'Failed to generate share token' });
+  }
+});
+
+// Get shared item by token
+app.get('/api/share/:type/:token', (req, res) => {
+  try {
+    const { type, token } = req.params;
+
+    // Look up token
+    const shareInfo = db.prepare(
+      'SELECT item_id FROM share_tokens WHERE token = ? AND type = ?'
+    ).get(token, type);
+
+    if (!shareInfo) {
+      return res.status(404).json({ error: 'Share link not found' });
+    }
+
+    // Get the data
+    const row = db.prepare('SELECT data FROM app_data WHERE id = 1').get();
+    if (!row) {
+      return res.status(404).json({ error: 'Data not found' });
+    }
+
+    const appData = JSON.parse(row.data);
+    const collection = type === 'list' ? appData.lists : appData.recipes;
+    const item = collection.find((i) => i.id === shareInfo.item_id);
+
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    res.json({ data: item, id: shareInfo.item_id });
+  } catch (error) {
+    console.error('Error getting shared item:', error);
+    res.status(500).json({ error: 'Failed to get shared item' });
+  }
+});
+
+// Update shared item
+app.put('/api/share/:type/:token', (req, res) => {
+  try {
+    const { type, token } = req.params;
+    const { data: updatedItem } = req.body;
+
+    // Look up token
+    const shareInfo = db.prepare(
+      'SELECT item_id FROM share_tokens WHERE token = ? AND type = ?'
+    ).get(token, type);
+
+    if (!shareInfo) {
+      return res.status(404).json({ error: 'Share link not found' });
+    }
+
+    // Get and update the data
+    const row = db.prepare('SELECT data FROM app_data WHERE id = 1').get();
+    if (!row) {
+      return res.status(404).json({ error: 'Data not found' });
+    }
+
+    const appData = JSON.parse(row.data);
+    const collectionKey = type === 'list' ? 'lists' : 'recipes';
+    
+    appData[collectionKey] = appData[collectionKey].map((item) =>
+      item.id === shareInfo.item_id ? { ...updatedItem, id: shareInfo.item_id } : item
+    );
+
+    const now = new Date().toISOString();
+    db.prepare('UPDATE app_data SET data = ?, updated_at = ? WHERE id = 1').run(
+      JSON.stringify(appData),
+      now
+    );
+
+    // Broadcast update to all connected clients in the room
+    const room = `${type}:${token}`;
+    broadcastToRoom(room, 'update', { item: updatedItem, type, id: shareInfo.item_id });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating shared item:', error);
+    res.status(500).json({ error: 'Failed to update shared item' });
+  }
+});
+
 // Merge function - combines server and client data
 function mergeData(serverData, clientData) {
   return {
@@ -173,7 +375,8 @@ function mergeRecipes(serverRecipes, clientRecipes) {
 
 // Start server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🛒 Grocery API running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/api/health`);
+  console.log(`   WebSocket: ws://localhost:${PORT}`);
 });

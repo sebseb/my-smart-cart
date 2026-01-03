@@ -1,0 +1,216 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Plus, Trash2, Edit2, Palette } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useGrocery } from '@/context/GroceryContext';
+import { Category } from '@/types/grocery';
+import { cn } from '@/lib/utils';
+
+interface CategoriesViewProps {
+  onBack: () => void;
+}
+
+const CATEGORY_COLORS = [
+  'category-fruit',
+  'category-vegetables',
+  'category-meat',
+  'category-fish',
+  'category-pasta',
+  'category-sauce',
+  'category-biscuit',
+  'category-breakfast',
+  'category-milk',
+  'category-cleaning',
+];
+
+export function CategoriesView({ onBack }: CategoriesViewProps) {
+  const { data, addCategory, updateCategory, deleteCategory } = useGrocery();
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<Category | null>(null);
+
+  const handleCreate = () => {
+    setEditingCategory({
+      id: '',
+      name: '',
+      color: CATEGORY_COLORS[0],
+    });
+    setIsNew(true);
+  };
+
+  const handleSave = () => {
+    if (!editingCategory?.name.trim()) return;
+
+    if (isNew) {
+      addCategory({
+        name: editingCategory.name.trim(),
+        color: editingCategory.color,
+      });
+    } else {
+      updateCategory(editingCategory.id, {
+        name: editingCategory.name.trim(),
+        color: editingCategory.color,
+      });
+    }
+    
+    setEditingCategory(null);
+    setIsNew(false);
+  };
+
+  const handleDelete = () => {
+    if (deleteConfirm) {
+      deleteCategory(deleteConfirm.id);
+      setDeleteConfirm(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border px-4 py-3 safe-top">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="flex-1 font-display font-bold text-xl">Categories</h1>
+        </div>
+      </header>
+
+      {/* Categories list */}
+      <main className="flex-1 px-4 py-4 pb-24">
+        <div className="space-y-2">
+          {data.categories.map((category) => (
+            <motion.div
+              key={category.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-card rounded-xl p-4 shadow-soft flex items-center gap-3"
+            >
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: `hsl(var(--${category.color}))` }}
+              />
+              <span className="flex-1 font-medium">{category.name}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditingCategory(category);
+                  setIsNew(false);
+                }}
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setDeleteConfirm(category)}
+                className="text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </motion.div>
+          ))}
+        </div>
+      </main>
+
+      {/* FAB */}
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="fixed bottom-6 right-6 safe-bottom"
+      >
+        <Button
+          size="lg"
+          onClick={handleCreate}
+          className="w-14 h-14 rounded-full shadow-lifted"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </motion.div>
+
+      {/* Edit/Create Dialog */}
+      <Dialog open={!!editingCategory} onOpenChange={() => setEditingCategory(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isNew ? 'New Category' : 'Edit Category'}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Input
+              placeholder="Category name"
+              value={editingCategory?.name || ''}
+              onChange={(e) =>
+                setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)
+              }
+            />
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Color</label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORY_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() =>
+                      setEditingCategory(prev => prev ? { ...prev, color } : null)
+                    }
+                    className={cn(
+                      "w-10 h-10 rounded-full transition-transform",
+                      editingCategory?.color === color && "ring-2 ring-ring ring-offset-2 scale-110"
+                    )}
+                    style={{ backgroundColor: `hsl(var(--${color}))` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingCategory(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={!editingCategory?.name.trim()}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete category?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete "{deleteConfirm?.name}". Items using this category won't be deleted but will show a default color.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

@@ -55,33 +55,33 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
   };
 
   return (
-    <div ref={constraintsRef} className="relative overflow-hidden rounded-lg mb-2">
+    <div ref={constraintsRef} className="relative overflow-hidden rounded-lg mb-1">
       {/* Background actions */}
       <div className="absolute inset-0 flex">
         {/* Left action (swipe right) */}
         <motion.div
-          className="flex-1 flex items-center justify-start px-4 bg-primary"
+          className="flex-1 flex items-center justify-start px-3 bg-primary"
           style={{ opacity: rightActionOpacity }}
         >
           {item.bought ? (
-            <Undo2 className="w-6 h-6 text-primary-foreground" />
+            <Undo2 className="w-5 h-5 text-primary-foreground" />
           ) : (
-            <Check className="w-6 h-6 text-primary-foreground" />
+            <Check className="w-5 h-5 text-primary-foreground" />
           )}
         </motion.div>
         
         {/* Right action (swipe left) */}
         <motion.div
           className={cn(
-            "flex-1 flex items-center justify-end px-4",
+            "flex-1 flex items-center justify-end px-3",
             item.bought ? "bg-primary" : "bg-destructive"
           )}
           style={{ opacity: leftActionOpacity }}
         >
           {item.bought ? (
-            <Undo2 className="w-6 h-6 text-primary-foreground" />
+            <Undo2 className="w-5 h-5 text-primary-foreground" />
           ) : (
-            <Trash2 className="w-6 h-6 text-destructive-foreground" />
+            <Trash2 className="w-5 h-5 text-destructive-foreground" />
           )}
         </motion.div>
       </div>
@@ -89,7 +89,7 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
       {/* Main item content */}
       <motion.div
         className={cn(
-          "relative bg-card p-4 flex items-center gap-3 cursor-grab active:cursor-grabbing transition-colors",
+          "relative bg-card py-2.5 px-3 flex items-center gap-2 cursor-grab active:cursor-grabbing transition-colors",
           isDeleting && "opacity-0"
         )}
         style={{ x, scale }}
@@ -101,7 +101,7 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
         {/* Category indicator */}
         <div
           className={cn(
-            "w-1 h-10 rounded-full",
+            "w-1 h-8 rounded-full flex-shrink-0",
             getCategoryColor()
           )}
           style={{
@@ -112,19 +112,19 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
         {/* Item info */}
         <div className="flex-1 min-w-0">
           <p className={cn(
-            "font-medium text-card-foreground truncate",
+            "text-sm font-medium text-card-foreground truncate",
             item.bought && "line-through text-muted-foreground"
           )}>
             {item.name}
           </p>
           {category && (
-            <p className="text-xs text-muted-foreground">{category.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{category.name}</p>
           )}
         </div>
 
         {/* Quantity */}
         <div className={cn(
-          "text-sm font-medium",
+          "text-xs font-medium flex-shrink-0",
           item.bought ? "text-muted-foreground" : "text-foreground"
         )}>
           {formatQuantity()}
@@ -135,9 +135,9 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+            className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0"
           >
-            <Check className="w-4 h-4 text-primary-foreground" />
+            <Check className="w-3 h-3 text-primary-foreground" />
           </motion.div>
         )}
       </motion.div>

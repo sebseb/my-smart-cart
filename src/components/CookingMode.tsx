@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChefHat, Check, ChevronLeft, ChevronRight, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,42 @@ interface CookingModeProps {
 export function CookingMode({ recipe, categories, onClose }: CookingModeProps) {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
   const [currentTab, setCurrentTab] = useState<'ingredients' | 'steps'>('ingredients');
+
+  // Screen Wake Lock to keep display on during cooking
+  useEffect(() => {
+    let wakeLock: WakeLockSentinel | null = null;
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('Wake Lock activated');
+        }
+      } catch (err) {
+        console.log('Wake Lock request failed:', err);
+      }
+    };
+
+    requestWakeLock();
+
+    // Re-acquire wake lock if page becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock) {
+        wakeLock.release().then(() => {
+          console.log('Wake Lock released');
+        });
+      }
+    };
+  }, []);
 
   const toggleIngredient = (id: string) => {
     setCheckedIngredients(prev => {

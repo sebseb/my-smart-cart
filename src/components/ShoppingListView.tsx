@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ArrowLeft, MoreVertical, Trash2, Edit2, Share2 } from 'lucide-react';
+import { Plus, ArrowLeft, MoreVertical, Trash2, Edit2, Share2, LayoutList, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,15 +38,44 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
   const [editName, setEditName] = useState(list.name);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [sortByCategory, setSortByCategory] = useState(false);
 
-  // Sort items: unbought first, then bought
-  const sortedItems = [...list.items].sort((a, b) => {
-    if (a.bought === b.bought) return 0;
-    return a.bought ? 1 : -1;
-  });
+  const getCategoryForItem = (categoryId: string) => {
+    return data.categories.find(c => c.id === categoryId);
+  };
 
-  const unboughtCount = list.items.filter(i => !i.bought).length;
-  const boughtCount = list.items.filter(i => i.bought).length;
+  // Group and sort items
+  const { unboughtItems, boughtItems, unboughtByCategory } = useMemo(() => {
+    const unbought = list.items.filter(i => !i.bought);
+    const bought = list.items.filter(i => i.bought);
+
+    // Group unbought items by category
+    const byCategory = new Map<string, typeof unbought>();
+    unbought.forEach(item => {
+      const category = getCategoryForItem(item.categoryId);
+      const key = category?.id || 'uncategorized';
+      if (!byCategory.has(key)) {
+        byCategory.set(key, []);
+      }
+      byCategory.get(key)!.push(item);
+    });
+
+    // Sort categories by name
+    const sortedCategories = Array.from(byCategory.entries()).sort((a, b) => {
+      const catA = data.categories.find(c => c.id === a[0]);
+      const catB = data.categories.find(c => c.id === b[0]);
+      return (catA?.name || 'Other').localeCompare(catB?.name || 'Other');
+    });
+
+    return {
+      unboughtItems: unbought,
+      boughtItems: bought,
+      unboughtByCategory: sortedCategories
+    };
+  }, [list.items, data.categories]);
+
+  const unboughtCount = unboughtItems.length;
+  const boughtCount = boughtItems.length;
 
   const handleSaveName = () => {
     if (editName.trim()) {
@@ -58,10 +87,6 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
   const handleDelete = () => {
     deleteList(list.id);
     onBack();
-  };
-
-  const getCategoryForItem = (categoryId: string) => {
-    return data.categories.find(c => c.id === categoryId);
   };
 
   return (
@@ -87,6 +112,15 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
               {list.name}
             </h1>
           )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSortByCategory(!sortByCategory)}
+            className={sortByCategory ? 'text-primary' : ''}
+          >
+            {sortByCategory ? <Layers className="w-5 h-5" /> : <LayoutList className="w-5 h-5" />}
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -136,7 +170,7 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
 
       {/* Items list */}
       <main className="flex-1 px-4 py-4 pb-24 overflow-auto scrollbar-hide">
-        {sortedItems.length === 0 ? (
+        {list.items.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -155,20 +189,50 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
             {/* Unbought items */}
             {unboughtCount > 0 && (
               <div className="mb-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                  To buy ({unboughtCount})
-                </p>
-                {sortedItems
-                  .filter(item => !item.bought)
-                  .map(item => (
-                    <SwipeableItem
-                      key={item.id}
-                      item={item}
-                      category={getCategoryForItem(item.categoryId)}
-                      onToggleBought={() => toggleItemBought(list.id, item.id)}
-                      onDelete={() => deleteItem(list.id, item.id)}
-                    />
-                  ))}
+                {sortByCategory ? (
+                  // Group by category
+                  unboughtByCategory.map(([categoryId, items]) => {
+                    const category = getCategoryForItem(categoryId);
+                    return (
+                      <div key={categoryId} className="mb-3">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: `hsl(var(--${category?.color || 'muted'}))` }}
+                          />
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                            {category?.name || 'Other'} ({items.length})
+                          </p>
+                        </div>
+                        {items.map(item => (
+                          <SwipeableItem
+                            key={item.id}
+                            item={item}
+                            category={category}
+                            onToggleBought={() => toggleItemBought(list.id, item.id)}
+                            onDelete={() => deleteItem(list.id, item.id)}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })
+                ) : (
+                  // Simple list
+                  <>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                      To buy ({unboughtCount})
+                    </p>
+                    {unboughtItems.map(item => (
+                      <SwipeableItem
+                        key={item.id}
+                        item={item}
+                        category={getCategoryForItem(item.categoryId)}
+                        onToggleBought={() => toggleItemBought(list.id, item.id)}
+                        onDelete={() => deleteItem(list.id, item.id)}
+                      />
+                    ))}
+                  </>
+                )}
               </div>
             )}
 
@@ -178,17 +242,15 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                   In cart ({boughtCount})
                 </p>
-                {sortedItems
-                  .filter(item => item.bought)
-                  .map(item => (
-                    <SwipeableItem
-                      key={item.id}
-                      item={item}
-                      category={getCategoryForItem(item.categoryId)}
-                      onToggleBought={() => toggleItemBought(list.id, item.id)}
-                      onDelete={() => deleteItem(list.id, item.id)}
-                    />
-                  ))}
+                {boughtItems.map(item => (
+                  <SwipeableItem
+                    key={item.id}
+                    item={item}
+                    category={getCategoryForItem(item.categoryId)}
+                    onToggleBought={() => toggleItemBought(list.id, item.id)}
+                    onDelete={() => deleteItem(list.id, item.id)}
+                  />
+                ))}
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, Trash2, Edit2, ChefHat, Share2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit2, ChefHat, Share2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { generateId } from '@/lib/storage';
 import { ShareDialog } from './ShareDialog';
 import { generateShareToken } from '@/lib/api';
+import { CookingMode } from './CookingMode';
 
 interface RecipesViewProps {
   onBack: () => void;
@@ -218,6 +219,7 @@ function RecipeDetail({
   const [description, setDescription] = useState(recipe.description);
   const [portions, setPortions] = useState(recipe.portions.toString());
   const [items, setItems] = useState<RecipeItem[]>(recipe.items);
+  const [showCookingMode, setShowCookingMode] = useState(false);
 
   const handleSave = () => {
     onSave({
@@ -422,13 +424,36 @@ function RecipeDetail({
               </div>
             </div>
 
-            <Button onClick={onAddToList} className="w-full" size="lg">
-              <Plus className="w-5 h-5 mr-2" />
-              Add to Shopping List
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => setShowCookingMode(true)} 
+                className="w-full" 
+                size="lg"
+                variant="default"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Start Cooking
+              </Button>
+              
+              <Button onClick={onAddToList} className="w-full" size="lg" variant="outline">
+                <Plus className="w-5 h-5 mr-2" />
+                Add to Shopping List
+              </Button>
+            </div>
           </div>
         )}
       </main>
+
+      {/* Cooking Mode */}
+      <AnimatePresence>
+        {showCookingMode && (
+          <CookingMode
+            recipe={recipe}
+            categories={data.categories}
+            onClose={() => setShowCookingMode(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

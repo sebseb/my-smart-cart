@@ -147,10 +147,10 @@ export function CookingMode({ recipe, categories, onClose }: CookingModeProps) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="p-4 space-y-3"
+              className="p-3 space-y-1.5"
             >
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground">
                   {checkedIngredients.size} / {recipe.items.length} ready
                 </p>
                 {checkedIngredients.size > 0 && (
@@ -158,7 +158,7 @@ export function CookingMode({ recipe, categories, onClose }: CookingModeProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setCheckedIngredients(new Set())}
-                    className="text-xs"
+                    className="text-xs h-7 px-2"
                   >
                     Reset all
                   </Button>
@@ -174,26 +174,26 @@ export function CookingMode({ recipe, categories, onClose }: CookingModeProps) {
                     key={item.id}
                     onClick={() => toggleIngredient(item.id)}
                     className={cn(
-                      "w-full flex items-center gap-4 p-4 rounded-xl transition-all text-left",
+                      "w-full flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all text-left",
                       isChecked
-                        ? "bg-primary/10 border-2 border-primary/30"
-                        : "bg-card border-2 border-transparent shadow-soft"
+                        ? "bg-primary/10 border border-primary/30"
+                        : "bg-card border border-transparent shadow-soft"
                     )}
                     whileTap={{ scale: 0.98 }}
                   >
                     <div
                       className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                        "w-6 h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0",
                         isChecked
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary"
                       )}
                     >
                       {isChecked ? (
-                        <Check className="w-5 h-5" />
+                        <Check className="w-4 h-4" />
                       ) : (
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-2.5 h-2.5 rounded-full"
                           style={{
                             backgroundColor: category
                               ? `hsl(var(--${category.color}))`
@@ -202,17 +202,20 @@ export function CookingMode({ recipe, categories, onClose }: CookingModeProps) {
                         />
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className={cn(
-                        "font-medium text-lg",
+                        "font-medium text-sm truncate",
                         isChecked && "line-through text-muted-foreground"
                       )}>
                         {item.name}
                       </p>
-                      <p className="text-muted-foreground">
-                        {item.quantity} {item.unit}
-                      </p>
                     </div>
+                    <span className={cn(
+                      "text-xs text-muted-foreground flex-shrink-0",
+                      isChecked && "line-through"
+                    )}>
+                      {item.quantity} {item.unit}
+                    </span>
                   </motion.button>
                 );
               })}

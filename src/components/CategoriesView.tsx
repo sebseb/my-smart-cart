@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Plus, Trash2, Edit2, Palette } from 'lucide-react';
+import { motion, Reorder } from 'framer-motion';
+import { ArrowLeft, Plus, Trash2, Edit2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -42,7 +42,7 @@ const CATEGORY_COLORS = [
 ];
 
 export function CategoriesView({ onBack }: CategoriesViewProps) {
-  const { data, addCategory, updateCategory, deleteCategory } = useGrocery();
+  const { data, addCategory, updateCategory, deleteCategory, reorderCategories } = useGrocery();
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<Category | null>(null);
@@ -96,14 +96,20 @@ export function CategoriesView({ onBack }: CategoriesViewProps) {
 
       {/* Categories list */}
       <main className="flex-1 px-4 py-4 pb-24">
-        <div className="space-y-2">
+        <Reorder.Group
+          axis="y"
+          values={data.categories}
+          onReorder={reorderCategories}
+          className="space-y-2"
+        >
           {data.categories.map((category) => (
-            <motion.div
+            <Reorder.Item
               key={category.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-card rounded-xl p-4 shadow-soft flex items-center gap-3"
+              value={category}
+              className="bg-card rounded-xl p-4 shadow-soft flex items-center gap-3 cursor-grab active:cursor-grabbing"
+              whileDrag={{ scale: 1.02, boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}
             >
+              <GripVertical className="w-4 h-4 text-muted-foreground" />
               <div
                 className="w-4 h-4 rounded-full"
                 style={{ backgroundColor: `hsl(var(--${category.color}))` }}
@@ -127,9 +133,9 @@ export function CategoriesView({ onBack }: CategoriesViewProps) {
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
-            </motion.div>
+            </Reorder.Item>
           ))}
-        </div>
+        </Reorder.Group>
       </main>
 
       {/* FAB */}

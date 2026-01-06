@@ -23,6 +23,7 @@ interface GroceryContextType {
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (categoryId: string, updates: Partial<Category>) => void;
   deleteCategory: (categoryId: string) => void;
+  reorderCategories: (categories: Category[]) => void;
   
   // Recipes
   createRecipe: (recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>) => Recipe;
@@ -230,6 +231,13 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const reorderCategories = useCallback((categories: Category[]) => {
+    setData(prev => ({
+      ...prev,
+      categories,
+    }));
+  }, []);
+
   // Recipes
   const createRecipe = useCallback((recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>): Recipe => {
     const newRecipe: Recipe = {
@@ -326,6 +334,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     addCategory,
     updateCategory,
     deleteCategory,
+    reorderCategories,
     createRecipe,
     updateRecipe,
     deleteRecipe,

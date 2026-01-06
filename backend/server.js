@@ -110,6 +110,26 @@ wss.on('connection', (ws) => {
             });
           }
           break;
+
+        case 'item_added':
+          // Broadcast item added notification to all clients in room except sender
+          const itemRoom = data.room;
+          if (rooms.has(itemRoom)) {
+            rooms.get(itemRoom).forEach((client) => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify({
+                  type: 'item_added',
+                  data: {
+                    listId: data.listId,
+                    listName: data.listName,
+                    itemName: data.itemName,
+                    timestamp: new Date().toISOString(),
+                  },
+                }));
+              }
+            });
+          }
+          break;
       }
     } catch (error) {
       console.error('WebSocket message error:', error);

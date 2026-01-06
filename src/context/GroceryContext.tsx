@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { AppData, ShoppingList, Recipe, Category, GroceryItem, RecipeItem } from '@/types/grocery';
 import { loadData, saveData, generateId, addToItemHistory } from '@/lib/storage';
 import { syncWithServer, checkServerConnection } from '@/lib/api';
+import { useItemNotifications } from '@/hooks/useItemNotifications';
 
 interface GroceryContextType {
   data: AppData;
@@ -44,6 +45,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData>(() => loadData());
   const [isOnline, setIsOnline] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const { notifyItemAdded } = useItemNotifications();
 
   // Check server connection periodically
   useEffect(() => {
@@ -133,6 +135,13 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     };
 
     setData(prev => {
+      // Find the list name for the notification
+      const list = prev.lists.find(l => l.id === listId);
+      if (list) {
+        // Notify other users about the new item
+        notifyItemAdded(listId, list.name, item.name);
+      }
+
       const updated = {
         ...prev,
         lists: prev.lists.map(list =>
@@ -147,7 +156,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
       };
       return addToItemHistory(item.name, updated);
     });
-  }, []);
+  }, [notifyItemAdded]);
 
   const updateItem = useCallback((listId: string, itemId: string, updates: Partial<GroceryItem>) => {
     setData(prev => ({

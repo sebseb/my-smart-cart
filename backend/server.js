@@ -13,6 +13,11 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Initialize Express app FIRST
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 // Initialize database
 const db = new Database(join(__dirname, 'grocery.db'));
 
@@ -455,7 +460,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   Health: ${protocol}://localhost:${PORT}/api/health`);
   console.log(`   WebSocket: ${wsProtocol}://localhost:${PORT}`);
 });
-
 
 // Backup database daily
 function backupDatabase() {

@@ -373,16 +373,16 @@ function mergeData(serverData, clientData) {
   };
 }
 
-// Merge itemHistory entries by name, keeping the most recent categoryId
+// Merge itemHistory entries by name, keeping the most recent categoryId and summing counts
 function mergeItemHistory(serverHistory, clientHistory) {
   const merged = new Map();
   
   // Handle both old string[] format and new object[] format
   const normalize = (entry) => {
     if (typeof entry === 'string') {
-      return { name: entry, categoryId: '' };
+      return { name: entry, categoryId: '', count: 1 };
     }
-    return entry;
+    return { ...entry, count: entry.count || 1 };
   };
   
   // Add all server entries
@@ -391,10 +391,19 @@ function mergeItemHistory(serverHistory, clientHistory) {
     merged.set(normalized.name, normalized);
   }
   
-  // Override with client entries (client has priority)
+  // Merge with client entries (client has priority for categoryId, sum counts)
   for (const entry of clientHistory) {
     const normalized = normalize(entry);
-    merged.set(normalized.name, normalized);
+    const existing = merged.get(normalized.name);
+    if (existing) {
+      merged.set(normalized.name, {
+        name: normalized.name,
+        categoryId: normalized.categoryId || existing.categoryId,
+        count: Math.max(existing.count, normalized.count), // Use max to avoid double counting
+      });
+    } else {
+      merged.set(normalized.name, normalized);
+    }
   }
   
   return Array.from(merged.values()).slice(-500);

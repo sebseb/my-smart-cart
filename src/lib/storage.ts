@@ -21,6 +21,13 @@ export function loadData(): AppData {
         migratedHistory = (migratedHistory as unknown as string[]).map(name => ({
           name: name,
           categoryId: '',
+          count: 1,
+        }));
+      } else {
+        // Ensure count exists on all entries
+        migratedHistory = (migratedHistory as ItemHistoryEntry[]).map(entry => ({
+          ...entry,
+          count: entry.count || 1,
         }));
       }
       // Ensure all required fields exist
@@ -54,14 +61,18 @@ export function addToItemHistory(itemName: string, categoryId: string, data: App
   const existingIndex = data.itemHistory.findIndex(entry => entry.name === normalizedName);
   
   if (existingIndex >= 0) {
-    // Update existing entry with new category
+    // Update existing entry with new category and increment count
     const updatedHistory = [...data.itemHistory];
-    updatedHistory[existingIndex] = { name: normalizedName, categoryId };
+    updatedHistory[existingIndex] = { 
+      name: normalizedName, 
+      categoryId,
+      count: (updatedHistory[existingIndex].count || 1) + 1,
+    };
     return { ...data, itemHistory: updatedHistory };
   }
   
   return {
     ...data,
-    itemHistory: [...data.itemHistory, { name: normalizedName, categoryId }].slice(-500),
+    itemHistory: [...data.itemHistory, { name: normalizedName, categoryId, count: 1 }].slice(-500),
   };
 }

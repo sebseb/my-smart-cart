@@ -8,6 +8,7 @@ import { createServer as createHttpServer } from 'http';
 import { createServer as createHttpsServer } from 'https';
 import { readFileSync, existsSync } from 'fs';
 import crypto from 'crypto';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -454,3 +455,30 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   Health: ${protocol}://localhost:${PORT}/api/health`);
   console.log(`   WebSocket: ${wsProtocol}://localhost:${PORT}`);
 });
+
+
+// Backup database daily
+function backupDatabase() {
+  const backupDir = join(__dirname, 'backups');
+  
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+  
+  const timestamp = new Date().toISOString().split('T')[0];
+  const backupFile = join(backupDir, `grocery-${timestamp}.db`);
+  
+  if (!fs.existsSync(backupFile)) {
+    const sourceDb = join(__dirname, 'grocery.db');
+    if (fs.existsSync(sourceDb)) {
+      fs.copyFileSync(sourceDb, backupFile);
+      console.log(`✅ Database backup created: ${backupFile}`);
+    }
+  }
+}
+
+// Backup on startup
+backupDatabase();
+
+// Backup every 24 hours
+setInterval(backupDatabase, 24 * 60 * 60 * 1000);

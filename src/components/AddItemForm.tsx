@@ -14,7 +14,7 @@ interface AddItemFormProps {
 }
 
 export function AddItemForm({ listId, onClose }: AddItemFormProps) {
-  const { data, addItem, getAutocompleteSuggestions } = useGrocery();
+  const { data, addItem, getAutocompleteSuggestions, getFrequentItems } = useGrocery();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState<Unit>('');
@@ -22,6 +22,8 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
   const [suggestions, setSuggestions] = useState<{ name: string; categoryId: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const frequentItems = getFrequentItems(20);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -64,6 +66,19 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
     inputRef.current?.focus();
   };
 
+  const handleQuickAdd = (item: { name: string; categoryId: string }) => {
+    const itemCategoryId = item.categoryId && data.categories.some(c => c.id === item.categoryId)
+      ? item.categoryId
+      : data.categories[0]?.id || '';
+    
+    addItem(listId, {
+      name: item.name,
+      quantity: 1,
+      unit: '',
+      categoryId: itemCategoryId,
+    });
+  };
+
   return (
     <motion.form
       initial={{ opacity: 0, y: 20 }}
@@ -80,6 +95,32 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
           </Button>
         )}
       </div>
+
+      {/* Quick-add frequent items */}
+      {frequentItems.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {frequentItems.map((item, index) => {
+            const category = data.categories.find(c => c.id === item.categoryId);
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleQuickAdd(item)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-secondary hover:bg-secondary/80 transition-colors border border-border/50"
+              >
+                {category && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: `hsl(var(--${category.color}))` }}
+                  />
+                )}
+                <span className="truncate max-w-[80px]">{item.name}</span>
+                <Plus className="w-3 h-3 text-muted-foreground" />
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Item name with autocomplete */}
       <div className="relative">

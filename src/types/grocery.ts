@@ -47,6 +47,7 @@ export interface Recipe {
 export interface ItemHistoryEntry {
   name: string;
   categoryId: string;
+  count: number; // Usage frequency
 }
 
 export interface AppData {

@@ -34,6 +34,7 @@ interface GroceryContextType {
   
   // Autocomplete
   getAutocompleteSuggestions: (query: string) => { name: string; categoryId: string }[];
+  getFrequentItems: (limit?: number) => { name: string; categoryId: string }[];
   
   // Sync
   forceSync: () => Promise<void>;
@@ -332,6 +333,17 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
       }));
   }, [data.itemHistory]);
 
+  // Get most frequently used items
+  const getFrequentItems = useCallback((limit: number = 20): { name: string; categoryId: string }[] => {
+    return [...data.itemHistory]
+      .sort((a, b) => (b.count || 1) - (a.count || 1))
+      .slice(0, limit)
+      .map(entry => ({
+        name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
+        categoryId: entry.categoryId,
+      }));
+  }, [data.itemHistory]);
+
   const value: GroceryContextType = {
     data,
     isOnline,
@@ -352,6 +364,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     deleteRecipe,
     addRecipeToList,
     getAutocompleteSuggestions,
+    getFrequentItems,
     forceSync,
   };
 

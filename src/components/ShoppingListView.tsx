@@ -60,11 +60,12 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
       byCategory.get(key)!.push(item);
     });
 
-    // Sort categories by name
+    // Sort categories by their order in data.categories
     const sortedCategories = Array.from(byCategory.entries()).sort((a, b) => {
-      const catA = data.categories.find(c => c.id === a[0]);
-      const catB = data.categories.find(c => c.id === b[0]);
-      return (catA?.name || 'Other').localeCompare(catB?.name || 'Other');
+      const indexA = data.categories.findIndex(c => c.id === a[0]);
+      const indexB = data.categories.findIndex(c => c.id === b[0]);
+      // Put uncategorized items (-1) at the end
+      return (indexA === -1 ? Infinity : indexA) - (indexB === -1 ? Infinity : indexB);
     });
 
     return {

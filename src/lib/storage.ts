@@ -1,4 +1,4 @@
-import { AppData, DEFAULT_CATEGORIES } from '@/types/grocery';
+import { AppData, DEFAULT_CATEGORIES, ItemHistoryEntry } from '@/types/grocery';
 
 const STORAGE_KEY = 'grocery-app-data';
 
@@ -15,10 +15,19 @@ export function loadData(): AppData {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const data = JSON.parse(stored) as AppData;
+      // Migrate old string[] itemHistory to ItemHistoryEntry[]
+      let migratedHistory = data.itemHistory || [];
+      if (migratedHistory.length > 0 && typeof migratedHistory[0] === 'string') {
+        migratedHistory = (migratedHistory as unknown as string[]).map(name => ({
+          name: name,
+          categoryId: '',
+        }));
+      }
       // Ensure all required fields exist
       return {
         ...defaultData,
         ...data,
+        itemHistory: migratedHistory as ItemHistoryEntry[],
         categories: data.categories?.length ? data.categories : DEFAULT_CATEGORIES,
       };
     }
@@ -40,13 +49,19 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function addToItemHistory(itemName: string, data: AppData): AppData {
+export function addToItemHistory(itemName: string, categoryId: string, data: AppData): AppData {
   const normalizedName = itemName.toLowerCase().trim();
-  if (!data.itemHistory.includes(normalizedName)) {
-    return {
-      ...data,
-      itemHistory: [...data.itemHistory, normalizedName].slice(-500), // Keep last 500 items
-    };
+  const existingIndex = data.itemHistory.findIndex(entry => entry.name === normalizedName);
+  
+  if (existingIndex >= 0) {
+    // Update existing entry with new category
+    const updatedHistory = [...data.itemHistory];
+    updatedHistory[existingIndex] = { name: normalizedName, categoryId };
+    return { ...data, itemHistory: updatedHistory };
   }
-  return data;
+  
+  return {
+    ...data,
+    itemHistory: [...data.itemHistory, { name: normalizedName, categoryId }].slice(-500),
+  };
 }

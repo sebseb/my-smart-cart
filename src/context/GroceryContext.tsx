@@ -33,7 +33,7 @@ interface GroceryContextType {
   addRecipeToList: (recipeId: string, listId: string, portions: number, selectedItems: RecipeItem[]) => void;
   
   // Autocomplete
-  getAutocompleteSuggestions: (query: string) => string[];
+  getAutocompleteSuggestions: (query: string) => { name: string; categoryId: string }[];
   
   // Sync
   forceSync: () => Promise<void>;
@@ -154,7 +154,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
             : list
         ),
       };
-      return addToItemHistory(item.name, updated);
+      return addToItemHistory(item.name, item.categoryId, updated);
     });
   }, [notifyItemAdded]);
 
@@ -319,14 +319,17 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
   }, [data.recipes]);
 
   // Autocomplete
-  const getAutocompleteSuggestions = useCallback((query: string): string[] => {
+  const getAutocompleteSuggestions = useCallback((query: string): { name: string; categoryId: string }[] => {
     if (!query || query.length < 2) return [];
     
     const normalizedQuery = query.toLowerCase().trim();
     return data.itemHistory
-      .filter(item => item.includes(normalizedQuery))
+      .filter(entry => entry.name.includes(normalizedQuery))
       .slice(0, 5)
-      .map(item => item.charAt(0).toUpperCase() + item.slice(1));
+      .map(entry => ({
+        name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
+        categoryId: entry.categoryId,
+      }));
   }, [data.itemHistory]);
 
   const value: GroceryContextType = {

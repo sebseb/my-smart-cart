@@ -117,9 +117,6 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
           )}>
             {item.name}
           </p>
-          {category && (
-            <p className="text-xs text-muted-foreground truncate">{category.name}</p>
-          )}
         </div>
 
         {/* Quantity */}

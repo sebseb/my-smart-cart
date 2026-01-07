@@ -4,7 +4,9 @@ import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { WebSocketServer } from 'ws';
-import { createServer } from 'http';
+import { createServer as createHttpServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
+import { readFileSync, existsSync } from 'fs';
 import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,13 +58,30 @@ if (!initRow) {
   );
 }
 
-// Express app
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+// SSL Certificate paths (set via environment variables)
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || join(__dirname, 'certs', 'privkey.pem');
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || join(__dirname, 'certs', 'fullchain.pem');
+const USE_HTTPS = process.env.USE_HTTPS === 'true' || (existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH));
 
-// HTTP server for WebSocket
-const server = createServer(app);
+// HTTP/HTTPS server based on SSL availability
+let server;
+if (USE_HTTPS) {
+  try {
+    const sslOptions = {
+      key: readFileSync(SSL_KEY_PATH),
+      cert: readFileSync(SSL_CERT_PATH),
+    };
+    server = createHttpsServer(sslOptions, app);
+    console.log('🔒 HTTPS enabled with SSL certificates');
+  } catch (error) {
+    console.error('Failed to load SSL certificates:', error.message);
+    console.log('⚠️ Falling back to HTTP');
+    server = createHttpServer(app);
+  }
+} else {
+  server = createHttpServer(app);
+  console.log('ℹ️ Running in HTTP mode (no SSL certificates found)');
+}
 
 // WebSocket server
 const wss = new WebSocketServer({ server });
@@ -105,6 +124,26 @@ wss.on('connection', (ws) => {
                 client.send(JSON.stringify({
                   type: 'update',
                   data: data.payload,
+                }));
+              }
+            });
+          }
+          break;
+
+        case 'item_added':
+          // Broadcast item added notification to all clients in room except sender
+          const itemRoom = data.room;
+          if (rooms.has(itemRoom)) {
+            rooms.get(itemRoom).forEach((client) => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify({
+                  type: 'item_added',
+                  data: {
+                    listId: data.listId,
+                    listName: data.listName,
+                    itemName: data.itemName,
+                    timestamp: new Date().toISOString(),
+                  },
                 }));
               }
             });
@@ -328,13 +367,46 @@ function mergeData(serverData, clientData) {
     recipes: mergeRecipes(serverData.recipes || [], clientData.recipes || []),
     // Use client categories (user-editable)
     categories: clientData.categories || serverData.categories || [],
-    // Combine item history (unique values)
-    itemHistory: [...new Set([
-      ...(serverData.itemHistory || []),
-      ...(clientData.itemHistory || []),
-    ])].slice(-500),
+    // Merge item history by name, prefer client category
+    itemHistory: mergeItemHistory(serverData.itemHistory || [], clientData.itemHistory || []),
     lastSynced: new Date().toISOString(),
   };
+}
+
+// Merge itemHistory entries by name, keeping the most recent categoryId and summing counts
+function mergeItemHistory(serverHistory, clientHistory) {
+  const merged = new Map();
+  
+  // Handle both old string[] format and new object[] format
+  const normalize = (entry) => {
+    if (typeof entry === 'string') {
+      return { name: entry, categoryId: '', count: 1 };
+    }
+    return { ...entry, count: entry.count || 1 };
+  };
+  
+  // Add all server entries
+  for (const entry of serverHistory) {
+    const normalized = normalize(entry);
+    merged.set(normalized.name, normalized);
+  }
+  
+  // Merge with client entries (client has priority for categoryId, sum counts)
+  for (const entry of clientHistory) {
+    const normalized = normalize(entry);
+    const existing = merged.get(normalized.name);
+    if (existing) {
+      merged.set(normalized.name, {
+        name: normalized.name,
+        categoryId: normalized.categoryId || existing.categoryId,
+        count: Math.max(existing.count, normalized.count), // Use max to avoid double counting
+      });
+    } else {
+      merged.set(normalized.name, normalized);
+    }
+  }
+  
+  return Array.from(merged.values()).slice(-500);
 }
 
 function mergeLists(serverLists, clientLists) {
@@ -375,8 +447,10 @@ function mergeRecipes(serverRecipes, clientRecipes) {
 
 // Start server
 const PORT = process.env.PORT || 3001;
+const protocol = USE_HTTPS ? 'https' : 'http';
+const wsProtocol = USE_HTTPS ? 'wss' : 'ws';
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🛒 Grocery API running on port ${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/api/health`);
-  console.log(`   WebSocket: ws://localhost:${PORT}`);
+  console.log(`   Health: ${protocol}://localhost:${PORT}/api/health`);
+  console.log(`   WebSocket: ${wsProtocol}://localhost:${PORT}`);
 });

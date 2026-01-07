@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { AppData, ShoppingList, Recipe, Category, GroceryItem, RecipeItem } from '@/types/grocery';
 import { loadData, saveData, generateId, addToItemHistory } from '@/lib/storage';
 import { syncWithServer, checkServerConnection } from '@/lib/api';
+import { useItemNotifications } from '@/hooks/useItemNotifications';
 
 interface GroceryContextType {
   data: AppData;
@@ -23,6 +24,7 @@ interface GroceryContextType {
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (categoryId: string, updates: Partial<Category>) => void;
   deleteCategory: (categoryId: string) => void;
+  reorderCategories: (categories: Category[]) => void;
   
   // Recipes
   createRecipe: (recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>) => Recipe;
@@ -31,7 +33,8 @@ interface GroceryContextType {
   addRecipeToList: (recipeId: string, listId: string, portions: number, selectedItems: RecipeItem[]) => void;
   
   // Autocomplete
-  getAutocompleteSuggestions: (query: string) => string[];
+  getAutocompleteSuggestions: (query: string) => { name: string; categoryId: string }[];
+  getFrequentItems: (limit?: number) => { name: string; categoryId: string }[];
   
   // Sync
   forceSync: () => Promise<void>;
@@ -43,6 +46,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData>(() => loadData());
   const [isOnline, setIsOnline] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const { notifyItemAdded } = useItemNotifications();
 
   // Check server connection periodically
   useEffect(() => {
@@ -132,6 +136,13 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     };
 
     setData(prev => {
+      // Find the list name for the notification
+      const list = prev.lists.find(l => l.id === listId);
+      if (list) {
+        // Notify other users about the new item
+        notifyItemAdded(listId, list.name, item.name);
+      }
+
       const updated = {
         ...prev,
         lists: prev.lists.map(list =>
@@ -144,9 +155,9 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
             : list
         ),
       };
-      return addToItemHistory(item.name, updated);
+      return addToItemHistory(item.name, item.categoryId, updated);
     });
-  }, []);
+  }, [notifyItemAdded]);
 
   const updateItem = useCallback((listId: string, itemId: string, updates: Partial<GroceryItem>) => {
     setData(prev => ({
@@ -230,6 +241,13 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const reorderCategories = useCallback((categories: Category[]) => {
+    setData(prev => ({
+      ...prev,
+      categories,
+    }));
+  }, []);
+
   // Recipes
   const createRecipe = useCallback((recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>): Recipe => {
     const newRecipe: Recipe = {
@@ -302,14 +320,28 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
   }, [data.recipes]);
 
   // Autocomplete
-  const getAutocompleteSuggestions = useCallback((query: string): string[] => {
+  const getAutocompleteSuggestions = useCallback((query: string): { name: string; categoryId: string }[] => {
     if (!query || query.length < 2) return [];
     
     const normalizedQuery = query.toLowerCase().trim();
     return data.itemHistory
-      .filter(item => item.includes(normalizedQuery))
+      .filter(entry => entry.name.includes(normalizedQuery))
       .slice(0, 5)
-      .map(item => item.charAt(0).toUpperCase() + item.slice(1));
+      .map(entry => ({
+        name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
+        categoryId: entry.categoryId,
+      }));
+  }, [data.itemHistory]);
+
+  // Get most frequently used items
+  const getFrequentItems = useCallback((limit: number = 20): { name: string; categoryId: string }[] => {
+    return [...data.itemHistory]
+      .sort((a, b) => (b.count || 1) - (a.count || 1))
+      .slice(0, limit)
+      .map(entry => ({
+        name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
+        categoryId: entry.categoryId,
+      }));
   }, [data.itemHistory]);
 
   const value: GroceryContextType = {
@@ -326,11 +358,13 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     addCategory,
     updateCategory,
     deleteCategory,
+    reorderCategories,
     createRecipe,
     updateRecipe,
     deleteRecipe,
     addRecipeToList,
     getAutocompleteSuggestions,
+    getFrequentItems,
     forceSync,
   };
 

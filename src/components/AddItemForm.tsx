@@ -14,14 +14,16 @@ interface AddItemFormProps {
 }
 
 export function AddItemForm({ listId, onClose }: AddItemFormProps) {
-  const { data, addItem, getAutocompleteSuggestions } = useGrocery();
+  const { data, addItem, getAutocompleteSuggestions, getFrequentItems } = useGrocery();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState<Unit>('');
   const [categoryId, setCategoryId] = useState(data.categories[0]?.id || '');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<{ name: string; categoryId: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const frequentItems = getFrequentItems(20);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -55,10 +57,26 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
     inputRef.current?.focus();
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setName(suggestion);
+  const handleSuggestionClick = (suggestion: { name: string; categoryId: string }) => {
+    setName(suggestion.name);
+    if (suggestion.categoryId && data.categories.some(c => c.id === suggestion.categoryId)) {
+      setCategoryId(suggestion.categoryId);
+    }
     setShowSuggestions(false);
     inputRef.current?.focus();
+  };
+
+  const handleQuickAdd = (item: { name: string; categoryId: string }) => {
+    const itemCategoryId = item.categoryId && data.categories.some(c => c.id === item.categoryId)
+      ? item.categoryId
+      : data.categories[0]?.id || '';
+    
+    addItem(listId, {
+      name: item.name,
+      quantity: 1,
+      unit: '',
+      categoryId: itemCategoryId,
+    });
   };
 
   return (
@@ -77,6 +95,32 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
           </Button>
         )}
       </div>
+
+      {/* Quick-add frequent items */}
+      {frequentItems.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {frequentItems.map((item, index) => {
+            const category = data.categories.find(c => c.id === item.categoryId);
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleQuickAdd(item)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-secondary hover:bg-secondary/80 transition-colors border border-border/50"
+              >
+                {category && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: `hsl(var(--${category.color}))` }}
+                  />
+                )}
+                <span className="truncate max-w-[80px]">{item.name}</span>
+                <Plus className="w-3 h-3 text-muted-foreground" />
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Item name with autocomplete */}
       <div className="relative">
@@ -98,16 +142,28 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
               exit={{ opacity: 0, y: -10 }}
               className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lifted overflow-hidden z-10"
             >
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="w-full px-4 py-2 text-left hover:bg-secondary transition-colors text-sm"
-                >
-                  {suggestion}
-                </button>
-              ))}
+              {suggestions.map((suggestion, index) => {
+                const category = data.categories.find(c => c.id === suggestion.categoryId);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="w-full px-4 py-2 text-left hover:bg-secondary transition-colors text-sm flex items-center justify-between"
+                  >
+                    <span>{suggestion.name}</span>
+                    {category && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: `hsl(var(--${category.color}))` }}
+                        />
+                        {category.name}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

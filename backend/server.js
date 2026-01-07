@@ -367,13 +367,37 @@ function mergeData(serverData, clientData) {
     recipes: mergeRecipes(serverData.recipes || [], clientData.recipes || []),
     // Use client categories (user-editable)
     categories: clientData.categories || serverData.categories || [],
-    // Combine item history (unique values)
-    itemHistory: [...new Set([
-      ...(serverData.itemHistory || []),
-      ...(clientData.itemHistory || []),
-    ])].slice(-500),
+    // Merge item history by name, prefer client category
+    itemHistory: mergeItemHistory(serverData.itemHistory || [], clientData.itemHistory || []),
     lastSynced: new Date().toISOString(),
   };
+}
+
+// Merge itemHistory entries by name, keeping the most recent categoryId
+function mergeItemHistory(serverHistory, clientHistory) {
+  const merged = new Map();
+  
+  // Handle both old string[] format and new object[] format
+  const normalize = (entry) => {
+    if (typeof entry === 'string') {
+      return { name: entry, categoryId: '' };
+    }
+    return entry;
+  };
+  
+  // Add all server entries
+  for (const entry of serverHistory) {
+    const normalized = normalize(entry);
+    merged.set(normalized.name, normalized);
+  }
+  
+  // Override with client entries (client has priority)
+  for (const entry of clientHistory) {
+    const normalized = normalize(entry);
+    merged.set(normalized.name, normalized);
+  }
+  
+  return Array.from(merged.values()).slice(-500);
 }
 
 function mergeLists(serverLists, clientLists) {

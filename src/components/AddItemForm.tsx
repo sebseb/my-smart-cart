@@ -19,7 +19,7 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState<Unit>('');
   const [categoryId, setCategoryId] = useState(data.categories[0]?.id || '');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<{ name: string; categoryId: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,8 +55,11 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
     inputRef.current?.focus();
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setName(suggestion);
+  const handleSuggestionClick = (suggestion: { name: string; categoryId: string }) => {
+    setName(suggestion.name);
+    if (suggestion.categoryId && data.categories.some(c => c.id === suggestion.categoryId)) {
+      setCategoryId(suggestion.categoryId);
+    }
     setShowSuggestions(false);
     inputRef.current?.focus();
   };
@@ -98,16 +101,28 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
               exit={{ opacity: 0, y: -10 }}
               className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lifted overflow-hidden z-10"
             >
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="w-full px-4 py-2 text-left hover:bg-secondary transition-colors text-sm"
-                >
-                  {suggestion}
-                </button>
-              ))}
+              {suggestions.map((suggestion, index) => {
+                const category = data.categories.find(c => c.id === suggestion.categoryId);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="w-full px-4 py-2 text-left hover:bg-secondary transition-colors text-sm flex items-center justify-between"
+                  >
+                    <span>{suggestion.name}</span>
+                    {category && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: `hsl(var(--${category.color}))` }}
+                        />
+                        {category.name}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

@@ -44,11 +44,16 @@ export interface Recipe {
   updatedAt: string;
 }
 
+export interface ItemHistoryEntry {
+  name: string;
+  categoryId: string;
+}
+
 export interface AppData {
   lists: ShoppingList[];
   recipes: Recipe[];
   categories: Category[];
-  itemHistory: string[]; // For autocomplete
+  itemHistory: ItemHistoryEntry[]; // For autocomplete with category
   lastSynced: string | null;
 }
 

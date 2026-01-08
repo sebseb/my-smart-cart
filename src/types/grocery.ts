@@ -39,6 +39,7 @@ export interface Recipe {
   title: string;
   description: string;
   portions: number;
+  duration?: number; // Duration in minutes
   items: RecipeItem[];
   createdAt: string;
   updatedAt: string;

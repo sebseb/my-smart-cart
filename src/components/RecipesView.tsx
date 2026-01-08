@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, Trash2, Edit2, ChefHat, Share2, Play } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit2, ChefHat, Share2, Play, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -66,6 +66,7 @@ export function RecipesView({ onBack }: RecipesViewProps) {
                 title: 'New Recipe',
                 description: '',
                 portions: 4,
+                duration: undefined,
                 items: [],
               });
               setSelectedRecipe(newRecipe);
@@ -168,6 +169,15 @@ function RecipesList({ recipes, onBack, onSelectRecipe, onCreateRecipe }: Recipe
                   <span>{recipe.portions} portions</span>
                   <span>•</span>
                   <span>{recipe.items.length} ingredients</span>
+                  {recipe.duration && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {recipe.duration} min
+                      </span>
+                    </>
+                  )}
                 </div>
               </motion.button>
             ))}
@@ -218,6 +228,7 @@ function RecipeDetail({
   const [title, setTitle] = useState(recipe.title);
   const [description, setDescription] = useState(recipe.description);
   const [portions, setPortions] = useState(recipe.portions.toString());
+  const [duration, setDuration] = useState(recipe.duration?.toString() || '');
   const [items, setItems] = useState<RecipeItem[]>(recipe.items);
   const [showCookingMode, setShowCookingMode] = useState(false);
 
@@ -226,6 +237,7 @@ function RecipeDetail({
       title,
       description,
       portions: parseInt(portions) || 4,
+      duration: duration ? parseInt(duration) : undefined,
       items,
     });
   };
@@ -296,15 +308,28 @@ function RecipeDetail({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Portions:</span>
-              <Input
-                type="number"
-                value={portions}
-                onChange={(e) => setPortions(e.target.value)}
-                className="w-20"
-                min="1"
-              />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Portions:</span>
+                <Input
+                  type="number"
+                  value={portions}
+                  onChange={(e) => setPortions(e.target.value)}
+                  className="w-20"
+                  min="1"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  placeholder="min"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="w-20"
+                  min="1"
+                />
+              </div>
             </div>
 
             {/* Ingredients */}
@@ -386,13 +411,19 @@ function RecipeDetail({
               <p className="text-muted-foreground">{recipe.description}</p>
             )}
             
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
               <span className="px-3 py-1 bg-secondary rounded-full">
                 {recipe.portions} portions
               </span>
               <span className="px-3 py-1 bg-secondary rounded-full">
                 {recipe.items.length} ingredients
               </span>
+              {recipe.duration && (
+                <span className="px-3 py-1 bg-secondary rounded-full flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {recipe.duration} min
+                </span>
+              )}
             </div>
 
             {/* Ingredients list */}

@@ -19,7 +19,7 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState<Unit>('');
   const [categoryId, setCategoryId] = useState(data.categories[0]?.id || '');
-  const [suggestions, setSuggestions] = useState<{ name: string; categoryId: string }[]>([]);
+  const [suggestions, setSuggestions] = useState<{ name: string; categoryId: string; unit: Unit }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,16 +57,19 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
     inputRef.current?.focus();
   };
 
-  const handleSuggestionClick = (suggestion: { name: string; categoryId: string }) => {
+  const handleSuggestionClick = (suggestion: { name: string; categoryId: string; unit: Unit }) => {
     setName(suggestion.name);
     if (suggestion.categoryId && data.categories.some(c => c.id === suggestion.categoryId)) {
       setCategoryId(suggestion.categoryId);
+    }
+    if (suggestion.unit) {
+      setUnit(suggestion.unit);
     }
     setShowSuggestions(false);
     inputRef.current?.focus();
   };
 
-  const handleQuickAdd = (item: { name: string; categoryId: string }) => {
+  const handleQuickAdd = (item: { name: string; categoryId: string; unit: Unit }) => {
     const itemCategoryId = item.categoryId && data.categories.some(c => c.id === item.categoryId)
       ? item.categoryId
       : data.categories[0]?.id || '';
@@ -74,7 +77,7 @@ export function AddItemForm({ listId, onClose }: AddItemFormProps) {
     addItem(listId, {
       name: item.name,
       quantity: 1,
-      unit: '',
+      unit: item.unit || '',
       categoryId: itemCategoryId,
     });
   };

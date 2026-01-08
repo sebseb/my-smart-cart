@@ -19,11 +19,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ShoppingList } from '@/types/grocery';
+import { ShoppingList, GroceryItem, Unit } from '@/types/grocery';
 import { useGrocery } from '@/context/GroceryContext';
 import { SwipeableItem } from './SwipeableItem';
 import { AddItemForm } from './AddItemForm';
 import { ShareDialog } from './ShareDialog';
+import { EditItemDialog } from './EditItemDialog';
 import { generateShareToken } from '@/lib/api';
 
 interface ShoppingListViewProps {
@@ -32,13 +33,14 @@ interface ShoppingListViewProps {
 }
 
 export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
-  const { data, updateList, deleteList, toggleItemBought, deleteItem } = useGrocery();
+  const { data, updateList, deleteList, updateItem, toggleItemBought, deleteItem } = useGrocery();
   const [showAddForm, setShowAddForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(list.name);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [sortByCategory, setSortByCategory] = useState(false);
+  const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
 
   const getCategoryForItem = (categoryId: string) => {
     return data.categories.find(c => c.id === categoryId);
@@ -88,6 +90,13 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
   const handleDelete = () => {
     deleteList(list.id);
     onBack();
+  };
+
+  const handleSaveItem = (updates: { quantity: number; unit: Unit; categoryId: string }) => {
+    if (editingItem) {
+      updateItem(list.id, editingItem.id, updates);
+      setEditingItem(null);
+    }
   };
 
   return (
@@ -212,6 +221,7 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
                             category={category}
                             onToggleBought={() => toggleItemBought(list.id, item.id)}
                             onDelete={() => deleteItem(list.id, item.id)}
+                            onEdit={() => setEditingItem(item)}
                           />
                         ))}
                       </div>
@@ -230,6 +240,7 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
                         category={getCategoryForItem(item.categoryId)}
                         onToggleBought={() => toggleItemBought(list.id, item.id)}
                         onDelete={() => deleteItem(list.id, item.id)}
+                        onEdit={() => setEditingItem(item)}
                       />
                     ))}
                   </>
@@ -250,6 +261,7 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
                     category={getCategoryForItem(item.categoryId)}
                     onToggleBought={() => toggleItemBought(list.id, item.id)}
                     onDelete={() => deleteItem(list.id, item.id)}
+                    onEdit={() => setEditingItem(item)}
                   />
                 ))}
               </div>
@@ -314,6 +326,15 @@ export function ShoppingListView({ list, onBack }: ShoppingListViewProps) {
           const token = await generateShareToken('list', list.id);
           return token;
         }}
+      />
+
+      {/* Edit item dialog */}
+      <EditItemDialog
+        item={editingItem}
+        categories={data.categories}
+        open={!!editingItem}
+        onOpenChange={(open) => !open && setEditingItem(null)}
+        onSave={handleSaveItem}
       />
     </div>
   );

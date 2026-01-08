@@ -9,11 +9,12 @@ interface SwipeableItemProps {
   category?: Category;
   onToggleBought: () => void;
   onDelete: () => void;
+  onEdit?: () => void;
 }
 
 const SWIPE_THRESHOLD = 80;
 
-export function SwipeableItem({ item, category, onToggleBought, onDelete }: SwipeableItemProps) {
+export function SwipeableItem({ item, category, onToggleBought, onDelete, onEdit }: SwipeableItemProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const constraintsRef = useRef(null);
   const x = useMotionValue(0);
@@ -42,6 +43,13 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
       }
     }
   }, [item.bought, onToggleBought, onDelete]);
+
+  const handleTap = useCallback(() => {
+    // Only open edit if not dragging
+    if (Math.abs(x.get()) < 5 && onEdit) {
+      onEdit();
+    }
+  }, [onEdit, x]);
 
   const formatQuantity = () => {
     if (item.quantity === 0) return '';
@@ -97,6 +105,7 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete }: Swip
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
+        onTap={handleTap}
       >
         {/* Category indicator */}
         <div

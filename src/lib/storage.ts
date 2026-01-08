@@ -1,4 +1,4 @@
-import { AppData, DEFAULT_CATEGORIES, ItemHistoryEntry } from '@/types/grocery';
+import { AppData, DEFAULT_CATEGORIES, ItemHistoryEntry, Unit } from '@/types/grocery';
 
 const STORAGE_KEY = 'grocery-app-data';
 
@@ -21,12 +21,14 @@ export function loadData(): AppData {
         migratedHistory = (migratedHistory as unknown as string[]).map(name => ({
           name: name,
           categoryId: '',
+          unit: '' as Unit,
           count: 1,
         }));
       } else {
-        // Ensure count exists on all entries
+        // Ensure count and unit exist on all entries
         migratedHistory = (migratedHistory as ItemHistoryEntry[]).map(entry => ({
           ...entry,
+          unit: entry.unit || '' as Unit,
           count: entry.count || 1,
         }));
       }
@@ -56,16 +58,17 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function addToItemHistory(itemName: string, categoryId: string, data: AppData): AppData {
+export function addToItemHistory(itemName: string, categoryId: string, unit: Unit, data: AppData): AppData {
   const normalizedName = itemName.toLowerCase().trim();
   const existingIndex = data.itemHistory.findIndex(entry => entry.name === normalizedName);
   
   if (existingIndex >= 0) {
-    // Update existing entry with new category and increment count
+    // Update existing entry with new category, unit and increment count
     const updatedHistory = [...data.itemHistory];
     updatedHistory[existingIndex] = { 
       name: normalizedName, 
       categoryId,
+      unit,
       count: (updatedHistory[existingIndex].count || 1) + 1,
     };
     return { ...data, itemHistory: updatedHistory };
@@ -73,6 +76,6 @@ export function addToItemHistory(itemName: string, categoryId: string, data: App
   
   return {
     ...data,
-    itemHistory: [...data.itemHistory, { name: normalizedName, categoryId, count: 1 }].slice(-500),
+    itemHistory: [...data.itemHistory, { name: normalizedName, categoryId, unit, count: 1 }].slice(-500),
   };
 }

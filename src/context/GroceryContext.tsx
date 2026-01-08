@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { AppData, ShoppingList, Recipe, Category, GroceryItem, RecipeItem } from '@/types/grocery';
+import { AppData, ShoppingList, Recipe, Category, GroceryItem, RecipeItem, Unit } from '@/types/grocery';
 import { loadData, saveData, generateId, addToItemHistory } from '@/lib/storage';
 import { syncWithServer, checkServerConnection } from '@/lib/api';
 import { useItemNotifications } from '@/hooks/useItemNotifications';
@@ -33,8 +33,8 @@ interface GroceryContextType {
   addRecipeToList: (recipeId: string, listId: string, portions: number, selectedItems: RecipeItem[]) => void;
   
   // Autocomplete
-  getAutocompleteSuggestions: (query: string) => { name: string; categoryId: string }[];
-  getFrequentItems: (limit?: number) => { name: string; categoryId: string }[];
+  getAutocompleteSuggestions: (query: string) => { name: string; categoryId: string; unit: Unit }[];
+  getFrequentItems: (limit?: number) => { name: string; categoryId: string; unit: Unit }[];
   
   // Sync
   forceSync: () => Promise<void>;
@@ -155,7 +155,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
             : list
         ),
       };
-      return addToItemHistory(item.name, item.categoryId, updated);
+      return addToItemHistory(item.name, item.categoryId, item.unit, updated);
     });
   }, [notifyItemAdded]);
 
@@ -320,7 +320,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
   }, [data.recipes]);
 
   // Autocomplete
-  const getAutocompleteSuggestions = useCallback((query: string): { name: string; categoryId: string }[] => {
+  const getAutocompleteSuggestions = useCallback((query: string): { name: string; categoryId: string; unit: Unit }[] => {
     if (!query || query.length < 2) return [];
     
     const normalizedQuery = query.toLowerCase().trim();
@@ -330,17 +330,19 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
       .map(entry => ({
         name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
         categoryId: entry.categoryId,
+        unit: entry.unit || '' as Unit,
       }));
   }, [data.itemHistory]);
 
   // Get most frequently used items
-  const getFrequentItems = useCallback((limit: number = 20): { name: string; categoryId: string }[] => {
+  const getFrequentItems = useCallback((limit: number = 20): { name: string; categoryId: string; unit: Unit }[] => {
     return [...data.itemHistory]
       .sort((a, b) => (b.count || 1) - (a.count || 1))
       .slice(0, limit)
       .map(entry => ({
         name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
         categoryId: entry.categoryId,
+        unit: entry.unit || '' as Unit,
       }));
   }, [data.itemHistory]);
 

@@ -1,0 +1,11 @@
+    {
+      "appId": "be.poitoux.app",
+      "appName": "SmartCart",
+      "webDir": "dist",
+      "server": {
+        "url": "https://seb-nucbox-g10.tail325c44.ts.net",
+        "androidScheme": "https",
+        "allowNavigation": ["seb-nucbox-g10.tail325c44.ts.net"]
+      }
+    }
+    

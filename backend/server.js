@@ -482,6 +482,23 @@ function backupDatabase() {
   }
 }
 
+// Add this route to your server.js
+app.get('/api/debug/db', (req, res) => {
+  try {
+    const row = db.prepare('SELECT data FROM app_data WHERE id = 1').get();
+    const appData = row ? JSON.parse(row.data) : null;
+    
+    const shareTokens = db.prepare('SELECT * FROM share_tokens').all();
+    
+    res.json({
+      appData,
+      shareTokens,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Backup on startup
 backupDatabase();
 

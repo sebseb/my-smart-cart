@@ -21,7 +21,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useGrocery } from '@/context/GroceryContext';
-import { Category } from '@/types/grocery';
+import { Category, CATEGORY_ICONS } from '@/types/grocery';
+import { CategoryIcon, iconMap } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 
 interface CategoriesViewProps {
@@ -52,6 +53,7 @@ export function CategoriesView({ onBack }: CategoriesViewProps) {
       id: '',
       name: '',
       color: CATEGORY_COLORS[0],
+      icon: CATEGORY_ICONS[0],
     });
     setIsNew(true);
   };
@@ -63,11 +65,13 @@ export function CategoriesView({ onBack }: CategoriesViewProps) {
       addCategory({
         name: editingCategory.name.trim(),
         color: editingCategory.color,
+        icon: editingCategory.icon,
       });
     } else {
       updateCategory(editingCategory.id, {
         name: editingCategory.name.trim(),
         color: editingCategory.color,
+        icon: editingCategory.icon,
       });
     }
     
@@ -111,9 +115,13 @@ export function CategoriesView({ onBack }: CategoriesViewProps) {
             >
               <GripVertical className="w-4 h-4 text-muted-foreground" />
               <div
-                className="w-4 h-4 rounded-full"
+                className="w-6 h-6 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: `hsl(var(--${category.color}))` }}
-              />
+              >
+                {category.icon && (
+                  <CategoryIcon icon={category.icon} className="w-3.5 h-3.5 text-white" />
+                )}
+              </div>
               <span className="flex-1 font-medium">{category.name}</span>
               <Button
                 variant="ghost"
@@ -179,7 +187,7 @@ export function CategoriesView({ onBack }: CategoriesViewProps) {
                       setEditingCategory(prev => prev ? { ...prev, color } : null)
                     }
                     className={cn(
-                      "w-10 h-10 rounded-full transition-transform",
+                      "w-8 h-8 rounded-full transition-transform",
                       editingCategory?.color === color && "ring-2 ring-ring ring-offset-2 scale-110"
                     )}
                     style={{ backgroundColor: `hsl(var(--${color}))` }}
@@ -187,8 +195,27 @@ export function CategoriesView({ onBack }: CategoriesViewProps) {
                 ))}
               </div>
             </div>
-          </div>
 
+            <div>
+              <label className="text-sm font-medium mb-2 block">Icon</label>
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                {CATEGORY_ICONS.map((icon) => (
+                  <button
+                    key={icon}
+                    onClick={() =>
+                      setEditingCategory(prev => prev ? { ...prev, icon } : null)
+                    }
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-muted hover:bg-muted/80",
+                      editingCategory?.icon === icon && "ring-2 ring-ring ring-offset-2 scale-110"
+                    )}
+                  >
+                    <CategoryIcon icon={icon} className="w-4 h-4" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingCategory(null)}>
               Cancel

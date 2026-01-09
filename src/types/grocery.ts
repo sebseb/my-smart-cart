@@ -60,17 +60,26 @@ export interface AppData {
   lastSynced: string | null;
 }
 
+export const CATEGORY_ICONS = [
+  'apple', 'carrot', 'beef', 'fish', 'wheat', 'soup', 'cookie', 'coffee', 'milk', 'sparkles',
+  'egg', 'pizza', 'sandwich', 'cake', 'candy', 'beer', 'wine', 'grape', 'cherry', 'banana',
+  'leaf', 'salad', 'popcorn', 'ice-cream-cone', 'croissant', 'drumstick', 'circle-dot', 'citrus',
+  'utensils', 'shopping-basket', 'package', 'pill', 'baby', 'dog', 'cat', 'home', 'spray-can',
+] as const;
+
+export type CategoryIcon = typeof CATEGORY_ICONS[number];
+
 export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'fruit', name: 'Fruits', color: 'category-fruit' },
-  { id: 'vegetables', name: 'Vegetables', color: 'category-vegetables' },
-  { id: 'meat', name: 'Meat', color: 'category-meat' },
-  { id: 'fish', name: 'Fish', color: 'category-fish' },
-  { id: 'pasta', name: 'Pasta & Rice', color: 'category-pasta' },
-  { id: 'sauce', name: 'Sauce', color: 'category-sauce' },
-  { id: 'biscuit', name: 'Biscuits', color: 'category-biscuit' },
-  { id: 'breakfast', name: 'Breakfast', color: 'category-breakfast' },
-  { id: 'milk', name: 'Dairy', color: 'category-milk' },
-  { id: 'cleaning', name: 'Cleaning', color: 'category-cleaning' },
+  { id: 'fruit', name: 'Fruits', color: 'category-fruit', icon: 'apple' },
+  { id: 'vegetables', name: 'Vegetables', color: 'category-vegetables', icon: 'carrot' },
+  { id: 'meat', name: 'Meat', color: 'category-meat', icon: 'beef' },
+  { id: 'fish', name: 'Fish', color: 'category-fish', icon: 'fish' },
+  { id: 'pasta', name: 'Pasta & Rice', color: 'category-pasta', icon: 'wheat' },
+  { id: 'sauce', name: 'Sauce', color: 'category-sauce', icon: 'soup' },
+  { id: 'biscuit', name: 'Biscuits', color: 'category-biscuit', icon: 'cookie' },
+  { id: 'breakfast', name: 'Breakfast', color: 'category-breakfast', icon: 'coffee' },
+  { id: 'milk', name: 'Dairy', color: 'category-milk', icon: 'milk' },
+  { id: 'cleaning', name: 'Cleaning', color: 'category-cleaning', icon: 'sparkles' },
 ];
 
 export const UNITS: { value: Unit; label: string }[] = [

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { Check, Undo2, Trash2 } from 'lucide-react';
 import { GroceryItem, Category } from '@/types/grocery';
+import { CategoryIcon } from './CategoryIcon';
 import { cn } from '@/lib/utils';
 
 interface SwipeableItemProps {
@@ -110,13 +111,17 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete, onEdit
         {/* Category indicator */}
         <div
           className={cn(
-            "w-1 h-8 rounded-full flex-shrink-0",
-            getCategoryColor()
+            "w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center",
+            !category && "bg-muted"
           )}
           style={{
             backgroundColor: category ? `hsl(var(--${category.color}))` : undefined
           }}
-        />
+        >
+          {category?.icon && (
+            <CategoryIcon icon={category.icon} className="w-3.5 h-3.5 text-white" />
+          )}
+        </div>
         
         {/* Item info */}
         <div className="flex-1 min-w-0">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, Trash2, Edit2, ChefHat, Share2, Play, Clock } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit2, ChefHat, Share2, Play, Clock, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -116,6 +116,14 @@ interface RecipesListProps {
 }
 
 function RecipesList({ recipes, onBack, onSelectRecipe, onCreateRecipe }: RecipesListProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredRecipes = recipes.filter((recipe) =>
+    recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    recipe.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    recipe.items.some((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -130,6 +138,16 @@ function RecipesList({ recipes, onBack, onSelectRecipe, onCreateRecipe }: Recipe
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="flex-1 font-display font-bold text-xl">Recipes</h1>
+        </div>
+        {/* Search field */}
+        <div className="relative mt-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search recipes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
       </header>
 
@@ -149,9 +167,23 @@ function RecipesList({ recipes, onBack, onSelectRecipe, onCreateRecipe }: Recipe
               Create your first recipe to quickly add ingredients to your lists
             </p>
           </motion.div>
+        ) : filteredRecipes.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-12"
+          >
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-display font-semibold text-lg mb-2">No recipes found</h3>
+            <p className="text-muted-foreground">
+              Try a different search term
+            </p>
+          </motion.div>
         ) : (
           <div className="space-y-3">
-            {recipes.map((recipe) => (
+            {filteredRecipes.map((recipe) => (
               <motion.button
                 key={recipe.id}
                 initial={{ opacity: 0, y: 10 }}

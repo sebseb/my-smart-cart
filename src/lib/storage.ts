@@ -1,6 +1,20 @@
-import { AppData, DEFAULT_CATEGORIES, ItemHistoryEntry, Unit } from '@/types/grocery';
+import { AppData, DEFAULT_CATEGORIES, ItemHistoryEntry, Unit, Category } from '@/types/grocery';
 
 const STORAGE_KEY = 'grocery-app-data';
+
+// Default icon mapping for existing categories
+const DEFAULT_ICON_MAP: Record<string, string> = {
+  'fruit': 'apple',
+  'vegetables': 'carrot',
+  'meat': 'beef',
+  'fish': 'fish',
+  'pasta': 'wheat',
+  'sauce': 'soup',
+  'biscuit': 'cookie',
+  'breakfast': 'coffee',
+  'milk': 'milk',
+  'cleaning': 'sparkles',
+};
 
 const defaultData: AppData = {
   lists: [],
@@ -32,12 +46,21 @@ export function loadData(): AppData {
           count: entry.count || 1,
         }));
       }
+      
+      // Migrate categories to include icons
+      let migratedCategories: Category[] = data.categories?.length 
+        ? data.categories.map(cat => ({
+            ...cat,
+            icon: cat.icon || DEFAULT_ICON_MAP[cat.id] || 'circle-dot',
+          }))
+        : DEFAULT_CATEGORIES;
+      
       // Ensure all required fields exist
       return {
         ...defaultData,
         ...data,
         itemHistory: migratedHistory as ItemHistoryEntry[],
-        categories: data.categories?.length ? data.categories : DEFAULT_CATEGORIES,
+        categories: migratedCategories,
       };
     }
   } catch (error) {

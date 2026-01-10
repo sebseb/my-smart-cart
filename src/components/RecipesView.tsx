@@ -33,7 +33,7 @@ export function RecipesView({ onBack }: RecipesViewProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {selectedRecipe ? (
           <RecipeDetail
             key="detail"
@@ -129,6 +129,7 @@ function RecipesList({ recipes, onBack, onSelectRecipe, onCreateRecipe }: Recipe
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
       className="flex flex-col min-h-screen"
     >
       {/* Header */}
@@ -300,6 +301,7 @@ function RecipeDetail({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
+      transition={{ duration: 0.2 }}
       className="flex flex-col min-h-screen"
     >
       {/* Header */}

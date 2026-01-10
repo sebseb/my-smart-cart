@@ -112,11 +112,9 @@ export function SwipeableItem({ item, category, onToggleBought, onDelete, onEdit
         <div
           className={cn(
             "w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center",
-            !category && "bg-muted"
+            !category && "bg-muted",
+            category && `bg-${category.color}`
           )}
-          style={{
-            backgroundColor: category ? `hsl(var(--${category.color}))` : undefined
-          }}
         >
           {category?.icon && (
             <CategoryIcon icon={category.icon} className="w-3.5 h-3.5 text-white" />

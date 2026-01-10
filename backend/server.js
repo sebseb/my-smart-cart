@@ -499,6 +499,125 @@ app.get('/api/debug/db', (req, res) => {
   }
 });
 
+// Parse recipe with Ollama AI
+app.post('/api/parse-recipe', async (req, res) => {
+  try {
+    const { text, ollamaUrl, categories } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Recipe text is required' });
+    }
+
+    // Prepare the prompt for Ollama
+    const categoriesStr = categories.join(', ');
+    const prompt = `You are a recipe parser. Extract the recipe information from the following text and return ONLY valid JSON (no markdown, no extra text).
+
+Recipe text:
+${text}
+
+Available categories: ${categoriesStr}
+
+Return ONLY this JSON structure (ensure it's valid JSON):
+{
+  "name": "recipe name",
+  "servings": "number of servings",
+  "prepTime": "preparation time in minutes",
+  "cookTime": "cooking time in minutes",
+  "ingredients": [
+    {
+      "name": "ingredient name",
+      "quantity": "numeric quantity",
+      "unit": "unit (g, ml, cups, etc)"
+    }
+  ],
+  "instructions": "step by step instructions separated by numbers like: 1. Step one 2. Step two",
+  "category": "one of the available categories that fits best"
+}`;
+
+    // Call Ollama API
+    const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3:8b-instruct-q4_K_M', // or 'neural-chat', 'llama2', etc.
+        prompt: prompt,
+        stream: false,
+        temperature: 0.3, // Low temperature for consistent parsing
+      }),
+    });
+
+    if (!ollamaResponse.ok) {
+      throw new Error(`Ollama API error: ${ollamaResponse.statusText}`);
+    }
+
+    const ollamaData = await ollamaResponse.json();
+    
+    // Extract JSON from response
+    let recipeJson;
+    try {
+      // Try to extract JSON from the response
+      const responseText = ollamaData.response;
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        throw new Error('No JSON found in response');
+      }
+
+      recipeJson = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.error('Failed to parse Ollama response:', ollamaData.response);
+      return res.status(500).json({
+        error: 'Failed to parse recipe. Try rephrasing the recipe text.',
+        debug: ollamaData.response,
+      });
+    }
+
+    // Validate parsed recipe
+    if (!recipeJson.name || !recipeJson.ingredients || recipeJson.ingredients.length === 0) {
+      return res.status(400).json({
+        error: 'Recipe must have at least a name and ingredients',
+      });
+    }
+
+    res.json({ recipe: recipeJson });
+  } catch (error) {
+    console.error('Error parsing recipe:', error);
+    res.status(500).json({
+      error: `Failed to parse recipe: ${error.message}`,
+    });
+  }
+});
+
+// Optional: Endpoint to test Ollama connection
+app.get('/api/ollama-test', async (req, res) => {
+  try {
+    const ollamaUrl = req.query.url || 'http://localhost:11434';
+    
+    const response = await fetch(`${ollamaUrl}/api/tags`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      return res.status(500).json({
+        status: 'error',
+        message: `Cannot connect to Ollama at ${ollamaUrl}`,
+      });
+    }
+
+    const data = await response.json();
+    res.json({
+      status: 'ok',
+      message: 'Connected to Ollama',
+      models: data.models?.map(m => m.name) || [],
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+    });
+  }
+});
+
 // Backup on startup
 backupDatabase();
 

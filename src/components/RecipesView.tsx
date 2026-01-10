@@ -38,6 +38,7 @@ export function RecipesView({ onBack }: RecipesViewProps) {
           <RecipeDetail
             key="detail"
             recipe={selectedRecipe}
+            onBackToHome={onBack}
             onBack={() => {
               setSelectedRecipe(null);
               setIsEditing(false);
@@ -238,6 +239,7 @@ function RecipesList({ recipes, onBack, onSelectRecipe, onCreateRecipe }: Recipe
 
 interface RecipeDetailProps {
   recipe: Recipe;
+  onBackToHome: () => void;
   onBack: () => void;
   isEditing: boolean;
   setIsEditing: (editing: boolean) => void;
@@ -249,6 +251,7 @@ interface RecipeDetailProps {
 
 function RecipeDetail({
   recipe,
+  onBackToHome,
   onBack,
   isEditing,
   setIsEditing,
@@ -514,7 +517,10 @@ function RecipeDetail({
         <CookingMode
           recipe={recipe}
           categories={data.categories}
-          onClose={() => setShowCookingMode(false)}
+          onClose={() => {
+            setShowCookingMode(false);
+            onBackToHome();
+          }}
         />
       )}
     </motion.div>

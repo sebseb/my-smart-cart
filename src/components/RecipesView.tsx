@@ -508,15 +508,13 @@ function RecipeDetail({
       </main>
 
       {/* Cooking Mode */}
-      <AnimatePresence>
-        {showCookingMode && (
-          <CookingMode
-            recipe={recipe}
-            categories={data.categories}
-            onClose={() => setShowCookingMode(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showCookingMode && (
+        <CookingMode
+          recipe={recipe}
+          categories={data.categories}
+          onClose={() => setShowCookingMode(false)}
+        />
+      )}
     </motion.div>
   );
 }

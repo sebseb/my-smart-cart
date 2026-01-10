@@ -60,13 +60,14 @@ export function CookingMode({
     });
   };
   const allIngredientsChecked = checkedIngredients.size === recipe.items.length;
-  return <motion.div initial={{
-    opacity: 0
-  }} animate={{
-    opacity: 1
-  }} exit={{
-    opacity: 0
-  }} className="fixed inset-0 z-50 bg-background flex flex-col">
+  return <motion.div 
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.2 }}
+    className="fixed inset-0 z-50 bg-background flex flex-col"
+    style={{ pointerEvents: 'auto' }}
+  >
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 border-b border-border bg-primary text-primary-foreground safe-top">
         <div className="flex items-center gap-3">
@@ -129,9 +130,7 @@ export function CookingMode({
               scale: 0.98
             }}>
                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0", isChecked ? "bg-primary text-primary-foreground" : "bg-secondary")}>
-                      {isChecked ? <Check className="w-4 h-4" /> : <div className="w-2.5 h-2.5 rounded-full" style={{
-                  backgroundColor: category ? `hsl(var(--${category.color}))` : 'hsl(var(--category-default))'
-                }} />}
+                      {isChecked ? <Check className="w-4 h-4" /> : <div className={cn("w-2.5 h-2.5 rounded-full", category ? `bg-${category.color}` : 'bg-category-default')} />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={cn("font-medium text-sm truncate", isChecked && "line-through text-muted-foreground")}>
